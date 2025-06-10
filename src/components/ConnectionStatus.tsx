@@ -13,9 +13,19 @@ const ConnectionStatus: React.FC = () => {
   const checkConnection = async () => {
     setIsChecking(true);
     try {
-      // Tenta fazer uma requisição simples para verificar se o backend está respondendo
+      // Try a simple health check first, then fall back to jogos endpoint
       console.log('🔍 Testando conexão com Azure...');
-      await api.get('/jogos');
+      
+      let response;
+      try {
+        // Try health endpoint first
+        response = await api.get('/health');
+      } catch (healthError) {
+        // If health endpoint doesn't exist, try jogos endpoint
+        console.log('Health endpoint não disponível, tentando /jogos...');
+        response = await api.get('/jogos');
+      }
+      
       setIsConnected(true);
       setLastCheck(new Date());
       
@@ -35,7 +45,17 @@ const ConnectionStatus: React.FC = () => {
       setIsConnected(false);
       setLastCheck(new Date());
       setAuthStatus('mock');
-      console.log('❌ Backend Azure não está respondendo:', error.message);
+      
+      // More detailed error logging
+      if (error.message.includes('CORS')) {
+        console.log('❌ Erro CORS - Backend Azure pode estar bloqueando requisições do frontend');
+      } else if (error.message.includes('Failed to fetch')) {
+        console.log('❌ Falha na conexão - Backend Azure pode estar offline ou inacessível');
+      } else if (error.message.includes('Timeout')) {
+        console.log('❌ Timeout - Backend Azure não respondeu a tempo');
+      } else {
+        console.log('❌ Backend Azure não está respondendo:', error.message);
+      }
     } finally {
       setIsChecking(false);
     }
@@ -115,6 +135,9 @@ const ConnectionStatus: React.FC = () => {
         )}
         {authStatus === 'mock' && (
           <div className="text-amber-600 font-medium">🎭 Modo Mock</div>
+        )}
+        {!isConnected && (
+          <div className="text-red-600 font-medium">⚠️ Usando dados locais</div>
         )}
       </div>
     </div>

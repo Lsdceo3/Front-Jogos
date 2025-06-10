@@ -11,8 +11,6 @@ const apiRequest = async (endpoint: string, options: RequestInit = {}) => {
   const defaultHeaders: HeadersInit = {
     'Content-Type': 'application/json',
     'Accept': 'application/json',
-    // Adicionar headers CORS para Azure
-    'Access-Control-Allow-Origin': '*',
   };
 
   // Adicionar token de autenticação se existir
@@ -37,8 +35,8 @@ const apiRequest = async (endpoint: string, options: RequestInit = {}) => {
     const response = await fetch(url, {
       ...options,
       headers,
-      // Timeout de 30 segundos para Azure
-      signal: AbortSignal.timeout(30000),
+      // Timeout de 10 segundos para melhor UX
+      signal: AbortSignal.timeout(10000),
       // Configurações para CORS
       mode: 'cors',
       credentials: 'omit',
@@ -57,7 +55,15 @@ const apiRequest = async (endpoint: string, options: RequestInit = {}) => {
 
     // Se não for sucesso, lançar erro
     if (!response.ok) {
-      const errorText = await response.text();
+      let errorText = `HTTP ${response.status}`;
+      try {
+        const errorBody = await response.text();
+        if (errorBody) {
+          errorText = errorBody;
+        }
+      } catch (e) {
+        // Ignore error parsing response body
+      }
       console.error(`❌ Erro ${response.status}: ${errorText}`);
       throw new Error(`Erro ${response.status}: ${errorText}`);
     }
@@ -68,18 +74,30 @@ const apiRequest = async (endpoint: string, options: RequestInit = {}) => {
     }
 
     // Tentar parsear JSON
-    const data = await response.json();
-    console.log(`📦 Dados recebidos:`, data);
-    return data;
+    const contentType = response.headers.get('content-type');
+    if (contentType && contentType.includes('application/json')) {
+      const data = await response.json();
+      console.log(`📦 Dados recebidos:`, data);
+      return data;
+    } else {
+      // Se não for JSON, retornar texto
+      const text = await response.text();
+      console.log(`📦 Resposta texto:`, text);
+      return text;
+    }
   } catch (error: any) {
     console.error('❌ Erro na requisição:', error);
     
     if (error.name === 'TimeoutError') {
-      throw new Error('Timeout: Servidor Azure não respondeu em 30 segundos');
+      throw new Error('Timeout: Servidor Azure não respondeu em 10 segundos');
     }
     
     if (error.name === 'TypeError' && error.message.includes('fetch')) {
       throw new Error('Erro de rede: Não foi possível conectar ao servidor Azure');
+    }
+
+    if (error.message.includes('CORS')) {
+      throw new Error('Erro CORS: Servidor Azure bloqueou a requisição');
     }
     
     throw error;
