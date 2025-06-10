@@ -91,7 +91,9 @@ const GamesList: React.FC = () => {
           <h2 className="text-2xl font-bold text-gray-900">Biblioteca de Jogos</h2>
           <p className="text-gray-600">{filteredGames.length} jogos encontrados</p>
         </div>
-        {state.user?.role === 'admin' && (
+        
+        {/* Botão sempre visível para usuários autenticados */}
+        {state.isAuthenticated && (
           <button
             onClick={() => setShowForm(true)}
             className="bg-indigo-600 text-white px-4 py-2 rounded-lg hover:bg-indigo-700 transition-colors flex items-center space-x-2"
@@ -195,6 +197,7 @@ const GamesList: React.FC = () => {
                     <span>Ver</span>
                   </button>
 
+                  {/* Botões de edição e exclusão apenas para admins */}
                   {state.user?.role === 'admin' && (
                     <>
                       <button
@@ -281,7 +284,7 @@ const GamesList: React.FC = () => {
           </div>
           <h3 className="text-lg font-medium text-gray-900 mb-2">Nenhum jogo encontrado</h3>
           <p className="text-gray-500 mb-4">Tente ajustar sua busca ou filtros</p>
-          {state.user?.role === 'admin' && (
+          {state.isAuthenticated && (
             <button
               onClick={() => setShowForm(true)}
               className="bg-indigo-600 text-white px-4 py-2 rounded-lg hover:bg-indigo-700 transition-colors"
