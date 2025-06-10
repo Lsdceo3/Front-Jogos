@@ -1,7 +1,7 @@
 // Configuração da API usando fetch nativo para melhor compatibilidade com Azure
 const API_BASE_URL = import.meta.env.VITE_API_BASE_URL || 'https://jogos-inventario.azurewebsites.net/api';
 
-console.log('🔗 Conectando ao backend Azure:', API_BASE_URL);
+console.log('🔗 Conectando ao backend:', API_BASE_URL);
 
 // Função helper para fazer requisições com fetch
 const apiRequest = async (endpoint: string, options: RequestInit = {}) => {
@@ -35,8 +35,8 @@ const apiRequest = async (endpoint: string, options: RequestInit = {}) => {
     const response = await fetch(url, {
       ...options,
       headers,
-      // Timeout de 10 segundos para melhor UX
-      signal: AbortSignal.timeout(10000),
+      // Timeout de 15 segundos para desenvolvimento local
+      signal: AbortSignal.timeout(15000),
       // Configurações para CORS
       mode: 'cors',
       credentials: 'omit',
@@ -89,15 +89,20 @@ const apiRequest = async (endpoint: string, options: RequestInit = {}) => {
     console.error('❌ Erro na requisição:', error);
     
     if (error.name === 'TimeoutError') {
-      throw new Error('Timeout: Servidor Azure não respondeu em 10 segundos');
+      throw new Error('Timeout: Servidor não respondeu em 15 segundos');
     }
     
-    if (error.name === 'TypeError' && error.message.includes('fetch')) {
-      throw new Error('Erro de rede: Não foi possível conectar ao servidor Azure');
+    if (error.name === 'TypeError' && error.message.includes('Failed to fetch')) {
+      // Erro mais específico para desenvolvimento local
+      if (API_BASE_URL.includes('localhost')) {
+        throw new Error('Erro de conexão: Verifique se o backend local está rodando na porta 8080');
+      } else {
+        throw new Error('Erro de rede: Não foi possível conectar ao servidor');
+      }
     }
 
     if (error.message.includes('CORS')) {
-      throw new Error('Erro CORS: Servidor Azure bloqueou a requisição');
+      throw new Error('Erro CORS: Servidor bloqueou a requisição');
     }
     
     throw error;

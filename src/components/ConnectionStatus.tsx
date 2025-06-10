@@ -9,12 +9,15 @@ const ConnectionStatus: React.FC = () => {
   const [isChecking, setIsChecking] = useState(false);
   const [lastCheck, setLastCheck] = useState<Date | null>(null);
   const [authStatus, setAuthStatus] = useState<'authenticated' | 'mock' | 'none'>('none');
+  const [errorMessage, setErrorMessage] = useState<string>('');
 
   const checkConnection = async () => {
     setIsChecking(true);
+    setErrorMessage('');
+    
     try {
       // Try a simple health check first, then fall back to jogos endpoint
-      console.log('🔍 Testando conexão com Azure...');
+      console.log('🔍 Testando conexão com backend...');
       
       let response;
       try {
@@ -28,33 +31,35 @@ const ConnectionStatus: React.FC = () => {
       
       setIsConnected(true);
       setLastCheck(new Date());
+      setErrorMessage('');
       
       // Verificar se está usando token real ou mock
       const token = localStorage.getItem('accessToken');
       if (token && !token.startsWith('mock_token_')) {
         setAuthStatus('authenticated');
-        console.log('✅ Backend Azure conectado com autenticação JWT!');
+        console.log('✅ Backend conectado com autenticação JWT!');
       } else if (token && token.startsWith('mock_token_')) {
         setAuthStatus('mock');
-        console.log('✅ Backend Azure conectado com dados mock!');
+        console.log('✅ Backend conectado com dados mock!');
       } else {
         setAuthStatus('none');
-        console.log('✅ Backend Azure conectado sem autenticação!');
+        console.log('✅ Backend conectado sem autenticação!');
       }
     } catch (error: any) {
       setIsConnected(false);
       setLastCheck(new Date());
       setAuthStatus('mock');
+      setErrorMessage(error.message);
       
       // More detailed error logging
       if (error.message.includes('CORS')) {
-        console.log('❌ Erro CORS - Backend Azure pode estar bloqueando requisições do frontend');
-      } else if (error.message.includes('Failed to fetch')) {
-        console.log('❌ Falha na conexão - Backend Azure pode estar offline ou inacessível');
+        console.log('❌ Erro CORS - Backend pode estar bloqueando requisições do frontend');
+      } else if (error.message.includes('Failed to fetch') || error.message.includes('conexão')) {
+        console.log('❌ Falha na conexão - Backend pode estar offline ou inacessível');
       } else if (error.message.includes('Timeout')) {
-        console.log('❌ Timeout - Backend Azure não respondeu a tempo');
+        console.log('❌ Timeout - Backend não respondeu a tempo');
       } else {
-        console.log('❌ Backend Azure não está respondendo:', error.message);
+        console.log('❌ Backend não está respondendo:', error.message);
       }
     } finally {
       setIsChecking(false);
@@ -80,11 +85,11 @@ const ConnectionStatus: React.FC = () => {
   };
 
   const getStatusText = () => {
-    if (isChecking) return 'Verificando Azure...';
-    if (!isConnected) return 'Azure Offline';
-    if (authStatus === 'authenticated') return 'Azure Online (JWT)';
-    if (authStatus === 'mock') return 'Azure Online (Mock)';
-    return 'Azure Online';
+    if (isChecking) return 'Verificando conexão...';
+    if (!isConnected) return 'Backend Offline';
+    if (authStatus === 'authenticated') return 'Backend Online (JWT)';
+    if (authStatus === 'mock') return 'Backend Online (Mock)';
+    return 'Backend Online';
   };
 
   const getStatusIcon = () => {
@@ -94,6 +99,8 @@ const ConnectionStatus: React.FC = () => {
     if (authStatus === 'mock') return <ShieldOff className="w-4 h-4" />;
     return <Wifi className="w-4 h-4" />;
   };
+
+  const isLocalBackend = import.meta.env.VITE_API_BASE_URL?.includes('localhost');
 
   return (
     <div className="fixed top-4 right-4 z-50">
@@ -128,8 +135,10 @@ const ConnectionStatus: React.FC = () => {
       </div>
       
       {/* URL do backend e status de autenticação */}
-      <div className="mt-1 text-xs text-gray-500 bg-white px-2 py-1 rounded shadow text-center">
-        <div className="font-mono">jogos-inventario.azurewebsites.net</div>
+      <div className="mt-1 text-xs text-gray-500 bg-white px-2 py-1 rounded shadow text-center max-w-xs">
+        <div className="font-mono truncate">
+          {isLocalBackend ? 'localhost:8080' : 'jogos-inventario.azurewebsites.net'}
+        </div>
         {authStatus === 'authenticated' && (
           <div className="text-emerald-600 font-medium">🔐 JWT Ativo</div>
         )}
@@ -137,7 +146,14 @@ const ConnectionStatus: React.FC = () => {
           <div className="text-amber-600 font-medium">🎭 Modo Mock</div>
         )}
         {!isConnected && (
-          <div className="text-red-600 font-medium">⚠️ Usando dados locais</div>
+          <div className="text-red-600 font-medium">
+            {isLocalBackend ? '⚠️ Backend local offline' : '⚠️ Usando dados locais'}
+          </div>
+        )}
+        {!isConnected && errorMessage && (
+          <div className="text-red-500 text-xs mt-1 break-words">
+            {errorMessage}
+          </div>
         )}
       </div>
     </div>
