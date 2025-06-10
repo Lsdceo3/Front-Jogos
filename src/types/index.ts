@@ -39,7 +39,7 @@ export interface StockMovement {
   dataHora?: string;
 }
 
-// DTOs para autenticação (baseados no backend)
+// DTOs para autenticação JWT (baseados no backend Spring Boot)
 export interface LoginRequest {
   username: string;
   password: string;
@@ -47,8 +47,8 @@ export interface LoginRequest {
 
 export interface JwtResponse {
   token: string;
-  type: string;
-  expiresIn: number;
+  type?: string;
+  expiresIn?: number;
   username: string;
 }
 
@@ -56,4 +56,13 @@ export interface RegistroUsuarioRequest {
   username: string;
   password: string;
   email?: string;
+}
+
+// Interface para usuário autenticado
+export interface AuthUser {
+  id: string;
+  email: string;
+  name: string;
+  username: string;
+  role: 'admin' | 'user';
 }

@@ -1,7 +1,7 @@
 // Configuração da API usando fetch nativo para melhor compatibilidade com Azure
 const API_BASE_URL = import.meta.env.VITE_API_BASE_URL || 'https://jogos-inventario.azurewebsites.net/api';
 
-console.log('🔗 Conectando ao backend:', API_BASE_URL);
+console.log('🔗 Conectando ao backend Azure:', API_BASE_URL);
 
 // Função helper para fazer requisições com fetch
 const apiRequest = async (endpoint: string, options: RequestInit = {}) => {
@@ -11,12 +11,18 @@ const apiRequest = async (endpoint: string, options: RequestInit = {}) => {
   const defaultHeaders: HeadersInit = {
     'Content-Type': 'application/json',
     'Accept': 'application/json',
+    // Adicionar headers CORS para Azure
+    'Access-Control-Allow-Origin': '*',
   };
 
   // Adicionar token de autenticação se existir
   const token = localStorage.getItem('accessToken');
-  if (token) {
+  if (token && !token.startsWith('mock_token_')) {
+    // Só adicionar o header Authorization se for um token real (não mock)
     defaultHeaders['Authorization'] = `Bearer ${token}`;
+    console.log('🔐 Token JWT adicionado ao header da requisição');
+  } else if (token && token.startsWith('mock_token_')) {
+    console.log('🎭 Usando token mock (backend offline)');
   }
 
   // Merge headers
@@ -25,24 +31,28 @@ const apiRequest = async (endpoint: string, options: RequestInit = {}) => {
     ...options.headers,
   };
 
-  console.log(`📡 ${options.method || 'GET'} ${endpoint}`);
+  console.log(`📡 ${options.method || 'GET'} ${endpoint} -> ${url}`);
 
   try {
     const response = await fetch(url, {
       ...options,
       headers,
-      // Timeout de 15 segundos
-      signal: AbortSignal.timeout(15000),
+      // Timeout de 30 segundos para Azure
+      signal: AbortSignal.timeout(30000),
+      // Configurações para CORS
+      mode: 'cors',
+      credentials: 'omit',
     });
 
-    console.log(`✅ ${options.method || 'GET'} ${endpoint} - ${response.status}`);
+    console.log(`✅ ${options.method || 'GET'} ${endpoint} - Status: ${response.status}`);
 
     // Se não autorizado, limpar token e recarregar
     if (response.status === 401) {
+      console.log('🚫 Token expirado ou inválido, fazendo logout...');
       localStorage.removeItem('accessToken');
       localStorage.removeItem('user');
       window.location.reload();
-      throw new Error('Não autorizado');
+      throw new Error('Token expirado - redirecionando para login');
     }
 
     // Se não for sucesso, lançar erro
@@ -59,16 +69,17 @@ const apiRequest = async (endpoint: string, options: RequestInit = {}) => {
 
     // Tentar parsear JSON
     const data = await response.json();
+    console.log(`📦 Dados recebidos:`, data);
     return data;
   } catch (error: any) {
     console.error('❌ Erro na requisição:', error);
     
     if (error.name === 'TimeoutError') {
-      throw new Error('Timeout: Servidor não respondeu em 15 segundos');
+      throw new Error('Timeout: Servidor Azure não respondeu em 30 segundos');
     }
     
     if (error.name === 'TypeError' && error.message.includes('fetch')) {
-      throw new Error('Erro de rede: Não foi possível conectar ao servidor');
+      throw new Error('Erro de rede: Não foi possível conectar ao servidor Azure');
     }
     
     throw error;

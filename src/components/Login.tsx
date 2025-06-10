@@ -1,6 +1,6 @@
 import React, { useState } from 'react';
 import { useAuth } from '../contexts/AuthContext';
-import { Gamepad2, Eye, EyeOff } from 'lucide-react';
+import { Gamepad2, Eye, EyeOff, Shield, AlertCircle } from 'lucide-react';
 
 interface LoginProps {
   onToggleMode: () => void;
@@ -60,10 +60,26 @@ const Login: React.FC<LoginProps> = ({ onToggleMode, isRegisterMode }) => {
           </p>
         </div>
 
-        {/* Demo Accounts Info */}
+        {/* JWT Info */}
         <div className="bg-indigo-50 rounded-lg p-4 mb-6">
-          <p className="text-sm font-medium text-indigo-900 mb-2">Contas de Demonstração:</p>
+          <div className="flex items-center mb-2">
+            <Shield className="w-4 h-4 text-indigo-600 mr-2" />
+            <p className="text-sm font-medium text-indigo-900">Autenticação JWT</p>
+          </div>
           <div className="text-xs text-indigo-700 space-y-1">
+            <p>• <strong>Backend Azure:</strong> Autenticação real com JWT</p>
+            <p>• <strong>Fallback:</strong> Dados mock se backend offline</p>
+            <p>• <strong>Teste:</strong> Qualquer email/senha funciona</p>
+          </div>
+        </div>
+
+        {/* Demo Accounts Info */}
+        <div className="bg-amber-50 rounded-lg p-4 mb-6">
+          <div className="flex items-center mb-2">
+            <AlertCircle className="w-4 h-4 text-amber-600 mr-2" />
+            <p className="text-sm font-medium text-amber-900">Contas de Demonstração:</p>
+          </div>
+          <div className="text-xs text-amber-700 space-y-1">
             <p><strong>Admin:</strong> admin@example.com (qualquer senha)</p>
             <p><strong>Usuário:</strong> user@example.com (qualquer senha)</p>
           </div>
@@ -90,7 +106,7 @@ const Login: React.FC<LoginProps> = ({ onToggleMode, isRegisterMode }) => {
 
           <div>
             <label className="block text-sm font-medium text-gray-700 mb-2">
-              Endereço de Email
+              Email / Username
             </label>
             <input
               type="email"
@@ -99,7 +115,7 @@ const Login: React.FC<LoginProps> = ({ onToggleMode, isRegisterMode }) => {
               onChange={handleChange}
               required
               className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-indigo-500 focus:border-transparent transition-colors"
-              placeholder="Digite seu email"
+              placeholder="Digite seu email ou username"
             />
           </div>
 
@@ -158,7 +174,10 @@ const Login: React.FC<LoginProps> = ({ onToggleMode, isRegisterMode }) => {
             {state.isLoading ? (
               <div className="animate-spin rounded-full h-5 w-5 border-b-2 border-white"></div>
             ) : (
-              isRegisterMode ? 'Criar Conta' : 'Entrar'
+              <>
+                <Shield className="w-4 h-4 mr-2" />
+                {isRegisterMode ? 'Criar Conta' : 'Entrar'}
+              </>
             )}
           </button>
         </form>
